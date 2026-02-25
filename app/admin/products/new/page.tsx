@@ -25,15 +25,19 @@ export default function NewProductPage() {
             let imageUrl = ''
             if(image){
                 const fileExt = image.name.split('.').pop()
-                const fileName = `${Math.random()}.${fileExt}`
+                const filestamp = Date.now()
+
+                const productSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+
+                const filePath = `${productSlug}/${filestamp}.${fileExt}`
 
                 const { error: uploadError } = await supabase.storage
-                .from('product-images')
-                .upload(fileName, image)
+                .from('products-images')
+                .upload(filePath, image)
 
                 if (uploadError) throw uploadError
 
-                const {data} = supabase.storage.from('product-images').getPublicUrl(fileName)
+                const {data} = supabase.storage.from('product-images').getPublicUrl(filePath)
                 imageUrl = data.publicUrl
             }
             const {error: insertError} = await supabase
@@ -71,7 +75,7 @@ export default function NewProductPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                     placeholder="Ej: Almendras Premium"
                   />
                 </div>
@@ -86,7 +90,7 @@ export default function NewProductPage() {
                     onChange={(e) => setDescription(e.target.value)}
                     required
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                     placeholder="Describe el producto..."
                   />
                 </div>
@@ -103,7 +107,7 @@ export default function NewProductPage() {
                     required
                     min="0"
                     step="100"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                     placeholder="15000"
                   />
                 </div>
@@ -117,7 +121,7 @@ export default function NewProductPage() {
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                   >
                     <option value="">Selecciona una categoría</option>
                     <option value="Almendras">Almendras</option>
@@ -139,7 +143,7 @@ export default function NewProductPage() {
                     accept="image/*"
                     onChange={(e) => setImage(e.target.files?.[0] || null)}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Formatos: JPG, PNG, WEBP (máx. 5MB)
