@@ -14,16 +14,50 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
   const [showConfirm, setShowConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const router = useRouter()
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
 
-  // Cerrar modal con ESC y manejar foco
+  // Gestión de foco y teclado del modal
   useEffect(() => {
-    if (!showConfirm) return
+    if (!showConfirm) {
+      // Devolver foco al botón que abrió el modal
+      triggerRef.current?.focus()
+      return
+    }
 
+    // Mover foco al botón Cancelar al abrir
     cancelRef.current?.focus()
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setShowConfirm(false)
+      if (e.key === 'Escape') {
+        setShowConfirm(false)
+        return
+      }
+
+      // Focus trap: mantener Tab dentro del modal
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
+        )
+        const elements = Array.from(focusable)
+        if (elements.length === 0) return
+
+        const first = elements[0]
+        const last = elements[elements.length - 1]
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault()
+            last.focus()
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
+      }
     }
 
     document.addEventListener('keydown', handleKeyDown)
@@ -73,6 +107,7 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
   return (
     <>
       <button
+        ref={triggerRef}
         onClick={() => setShowConfirm(true)}
         className="px-3 py-1 text-sm text-red-600 hover:text-red-800 font-medium"
       >
@@ -87,7 +122,10 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
           aria-labelledby={`delete-title-${productId}`}
           aria-describedby={`delete-desc-${productId}`}
         >
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div
+            ref={modalRef}
+            className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+          >
             <h3 id={`delete-title-${productId}`} className="text-lg font-bold mb-2">
               ¿Eliminar producto?
             </h3>
