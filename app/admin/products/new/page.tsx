@@ -3,6 +3,7 @@
 import {useState} from 'react'
 import {createClient} from '@/lib/supabase-client'
 import {useRouter} from 'next/navigation'
+import {STORAGE_BUCKET} from '@/lib/storage-utils'
 
 export default function NewProductPage() {
     const [name, setName] = useState('')
@@ -24,7 +25,11 @@ export default function NewProductPage() {
             const supabase = createClient()
             let imageUrl = ''
             if(image){
-                const fileExt = image.name.split('.').pop()
+                const dotIndex = image.name.lastIndexOf('.')
+                if (dotIndex === -1 || dotIndex === image.name.length - 1) {
+                    throw new Error('El archivo de imagen debe tener una extensión válida (ej: .jpg, .png, .webp)')
+                }
+                const fileExt = image.name.slice(dotIndex + 1).toLowerCase()
                 const filestamp = Date.now()
 
                 const productSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
@@ -32,12 +37,12 @@ export default function NewProductPage() {
                 const filePath = `${productSlug}/${filestamp}.${fileExt}`
 
                 const { error: uploadError } = await supabase.storage
-                .from('products-images')
+                .from(STORAGE_BUCKET)
                 .upload(filePath, image)
 
                 if (uploadError) throw uploadError
 
-                const {data} = supabase.storage.from('product-images').getPublicUrl(filePath)
+                const {data} = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath)
                 imageUrl = data.publicUrl
             }
             const {error: insertError} = await supabase

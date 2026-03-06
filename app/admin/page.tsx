@@ -1,12 +1,12 @@
 import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
+import DeleteButton from './products/DeleteButton'
 import Image from 'next/image'
 import Link from 'next/link'
 
 export default async function AdminPage() {
   const cookieStore = await cookies()
-  
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -26,12 +26,6 @@ export default async function AdminPage() {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/admin/login')
-  }
-
   // Traer todos los productos
   const { data: products } = await supabase
     .from('products')
@@ -44,9 +38,7 @@ export default async function AdminPage() {
         {/* Header */}
         <div className="bg-white rounded-lg shadow-md p-8 mb-6">
           <h1 className="text-3xl font-bold mb-4">Panel de Administración</h1>
-          <p className="text-gray-600">
-            Bienvenido, <span className="font-semibold">{user.email}</span>
-          </p>
+          <p className="text-gray-600">Bienvenido al panel de administración.</p>
         </div>
 
         {/* Gestión de Productos */}
@@ -133,11 +125,7 @@ export default async function AdminPage() {
                           >
                             Editar
                           </Link>
-                          <button
-                            className="px-3 py-1 text-sm text-red-600 hover:text-red-800 font-medium"
-                          >
-                            Eliminar
-                          </button>
+                          <DeleteButton productId={product.id} productName={product.name} />
                         </div>
                       </td>
                     </tr>
