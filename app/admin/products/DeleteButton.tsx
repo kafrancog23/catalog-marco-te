@@ -17,7 +17,7 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
   const router = useRouter()
   const triggerRef = useRef<HTMLButtonElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
-  const modalRef = useRef<HTMLDivElement>(null)
+
 
   // Gestión de foco y teclado del modal
   useEffect(() => {
@@ -104,6 +104,7 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
   return (
     <>
       <button
+        ref={triggerRef}
         onClick={() => { setShowConfirm(true); setError('') }}
         className="px-3 py-1 text-sm text-red-600 hover:text-red-800 font-medium"
       >
@@ -118,10 +119,7 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
           aria-labelledby={`delete-title-${productId}`}
           aria-describedby={`delete-desc-${productId}`}
         >
-          <div
-            ref={modalRef}
-            className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
-          >
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 id={`delete-title-${productId}`} className="text-lg font-bold mb-2">
               ¿Eliminar producto?
             </h3>
