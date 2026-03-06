@@ -37,7 +37,7 @@ export default function NewProductPage() {
 
                 if (uploadError) throw uploadError
 
-                const {data} = supabase.storage.from('product-images').getPublicUrl(filePath)
+                const {data} = supabase.storage.from('products-images').getPublicUrl(filePath)
                 imageUrl = data.publicUrl
             }
             const {error: insertError} = await supabase

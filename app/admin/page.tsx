@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
+import DeleteButton from './products/DeleteButton'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -133,11 +134,7 @@ export default async function AdminPage() {
                           >
                             Editar
                           </Link>
-                          <button
-                            className="px-3 py-1 text-sm text-red-600 hover:text-red-800 font-medium"
-                          >
-                            Eliminar
-                          </button>
+                          <DeleteButton productId={product.id} productName={product.name} />
                         </div>
                       </td>
                     </tr>
