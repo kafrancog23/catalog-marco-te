@@ -3,6 +3,7 @@
 import {useState} from 'react'
 import {createClient} from '@/lib/supabase-client'
 import {useRouter} from 'next/navigation'
+import {STORAGE_BUCKET} from '@/lib/storage-utils'
 
 export default function NewProductPage() {
     const [name, setName] = useState('')
@@ -32,12 +33,12 @@ export default function NewProductPage() {
                 const filePath = `${productSlug}/${filestamp}.${fileExt}`
 
                 const { error: uploadError } = await supabase.storage
-                .from('products-images')
+                .from(STORAGE_BUCKET)
                 .upload(filePath, image)
 
                 if (uploadError) throw uploadError
 
-                const {data} = supabase.storage.from('products-images').getPublicUrl(filePath)
+                const {data} = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath)
                 imageUrl = data.publicUrl
             }
             const {error: insertError} = await supabase
