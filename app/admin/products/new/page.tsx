@@ -25,7 +25,11 @@ export default function NewProductPage() {
             const supabase = createClient()
             let imageUrl = ''
             if(image){
-                const fileExt = image.name.split('.').pop()
+                const rawExt = image.name.split('.').pop()
+                if (!rawExt || rawExt === image.name) {
+                    throw new Error('El archivo de imagen debe tener una extensión válida (ej: .jpg, .png, .webp)')
+                }
+                const fileExt = rawExt.toLowerCase()
                 const filestamp = Date.now()
 
                 const productSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
