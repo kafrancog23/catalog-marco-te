@@ -1,23 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { createClient } from '@/lib/supabase-client'
+import { extractStoragePath, STORAGE_BUCKET } from '@/lib/storage-utils'
 import { useRouter, useParams } from 'next/navigation'
-
-const STORAGE_BUCKET = 'products-images'
-const STORAGE_PUBLIC_PREFIX = `/storage/v1/object/public/${STORAGE_BUCKET}/`
-
-function extractStoragePath(imageUrl: string): string | null {
-  try {
-    const { pathname } = new URL(imageUrl)
-    if (pathname.startsWith(STORAGE_PUBLIC_PREFIX)) {
-      return pathname.slice(STORAGE_PUBLIC_PREFIX.length)
-    }
-  } catch {
-    // URL inválida
-  }
-  return null
-}
 
 export default function EditProductPage() {
   const params = useParams()
@@ -63,13 +49,15 @@ export default function EditProductPage() {
     loadProduct()
   }, [id])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setSaving(true)
     setError('')
 
+    const supabase = createClient()
+    let newFilePath: string | null = null
+
     try {
-      const supabase = createClient()
       let imageUrl = currentImageUrl
       let oldStoragePath: string | null = null
 
@@ -86,21 +74,20 @@ export default function EditProductPage() {
           .replace(/\s+/g, '-')
           .replace(/[^a-z0-9-]/g, '')
 
-        const filePath = `${productSlug}/${timestamp}.${fileExt}`
+        newFilePath = `${productSlug}/${timestamp}.${fileExt}`
 
         const { error: uploadError } = await supabase.storage
           .from(STORAGE_BUCKET)
-          .upload(filePath, newImage)
+          .upload(newFilePath, newImage)
 
         if (uploadError) throw uploadError
 
         const { data } = supabase.storage
           .from(STORAGE_BUCKET)
-          .getPublicUrl(filePath)
+          .getPublicUrl(newFilePath)
 
         imageUrl = data.publicUrl
 
-        // Guardar referencia a imagen anterior para limpiarla después
         if (currentImageUrl) {
           oldStoragePath = extractStoragePath(currentImageUrl)
         }
@@ -133,6 +120,13 @@ export default function EditProductPage() {
 
       router.push('/admin')
     } catch (err: unknown) {
+      // Si falla el update y ya subimos imagen nueva, limpiarla
+      if (newFilePath) {
+        await supabase.storage
+          .from(STORAGE_BUCKET)
+          .remove([newFilePath])
+          .catch(() => {})
+      }
       setError(err instanceof Error ? err.message : 'Error al guardar')
     } finally {
       setSaving(false)

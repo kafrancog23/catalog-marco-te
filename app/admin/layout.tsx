@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
@@ -5,7 +6,7 @@ import { createServerClient } from '@supabase/ssr'
 export default async function AdminLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
   const cookieStore = await cookies()
 
