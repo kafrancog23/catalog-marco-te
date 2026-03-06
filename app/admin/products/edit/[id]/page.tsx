@@ -57,18 +57,25 @@ export default function EditProductPage() {
     try {
       const supabase = createClient()
       let imageUrl = currentImageUrl
+      let oldImagePath: string | null = null
 
       // Si hay nueva imagen, subirla
       if (newImage) {
         const fileExt = newImage.name.split('.').pop()
+
+        // Validar que tenga extensión
+        if (!fileExt) {
+          throw new Error('El archivo debe tener una extensión válida')
+        }
+
         const timestamp = Date.now()
         const productSlug = name
           .toLowerCase()
           .replace(/\s+/g, '-')
           .replace(/[^a-z0-9-]/g, '')
-        
+
         const filePath = `${productSlug}/${timestamp}.${fileExt}`
-        
+
         const { error: uploadError } = await supabase.storage
           .from('products-images')
           .upload(filePath, newImage)
@@ -80,6 +87,14 @@ export default function EditProductPage() {
           .getPublicUrl(filePath)
 
         imageUrl = data.publicUrl
+
+        // Preparar ruta de imagen anterior para eliminar después
+        if (currentImageUrl) {
+          const match = currentImageUrl.match(/\/public\/(.+)/)
+          if (match && match[1]) {
+            oldImagePath = match[1].replace('products-images/', '')
+          }
+        }
       }
 
       // Actualizar el producto
@@ -97,9 +112,21 @@ export default function EditProductPage() {
 
       if (updateError) throw updateError
 
+      // Eliminar imagen anterior DESPUÉS de actualizar BD exitosamente
+      if (oldImagePath) {
+        const { error: deleteError } = await supabase.storage
+          .from('products-images')
+          .remove([oldImagePath])
+
+        if (deleteError) {
+          console.warn('No se pudo eliminar imagen anterior:', deleteError)
+        }
+      }
+
       router.push('/admin')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al guardar')
+    } finally {
       setSaving(false)
     }
   }

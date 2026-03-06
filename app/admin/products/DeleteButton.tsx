@@ -16,17 +16,36 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
 
   const handleDelete = async () => {
     setDeleting(true)
-    
+
     try {
       const supabase = createClient()
       const { data: product, error: fetchError } = await supabase
         .from('products')
-        .select('*')
+        .select('image_url')
         .eq('id', productId)
         .single()
 
       if (fetchError) throw fetchError
 
+      // Borrar imagen de Storage PRIMERO (si existe)
+      if (product?.image_url) {
+        const match = product.image_url.match(/\/public\/(.+)/)
+        if (match && match[1]) {
+          const fullPath = match[1]
+          const filePath = fullPath.replace('products-images/', '')
+
+          const { error: removeError } = await supabase.storage
+            .from('products-images')
+            .remove([filePath])
+
+          // Solo registrar warning si falla Storage, no bloquear
+          if (removeError) {
+            console.warn('Error al eliminar imagen:', removeError)
+          }
+        }
+      }
+
+      // Luego eliminar el registro de la BD
       const { error: deleteError } = await supabase
         .from('products')
         .delete()
@@ -34,29 +53,11 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
 
       if (deleteError) throw deleteError
 
-      if (product?.image_url) {
-        try {
-          const match = product.image_url.match(/\/public\/(.+)/)
-          if (match && match[1]) {
-            const fullPath = match[1]
-            const filePath = fullPath.replace('products-images/', '')
-            
-            const { data: removeData, error: removeError } = await supabase.storage
-              .from('products-images')
-              .remove([filePath])
-
-            if (removeError) {
-              throw removeError
-            }
-          }
-        } catch (storageError) {
-          throw storageError
-        }
-      }
       router.refresh()
       setShowConfirm(false)
     } catch (err: unknown) {
       alert('Error al eliminar: ' + (err instanceof Error ? err.message : 'Error desconocido'))
+    } finally {
       setDeleting(false)
     }
   }
