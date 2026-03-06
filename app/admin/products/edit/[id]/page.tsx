@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, type FormEvent } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase-client'
 import { extractStoragePath, STORAGE_BUCKET } from '@/lib/storage-utils'
 import { useRouter, useParams } from 'next/navigation'
@@ -228,11 +229,15 @@ export default function EditProductPage() {
                 Imagen actual
               </label>
               {currentImageUrl && (
-                <img
-                  src={currentImageUrl}
-                  alt="Imagen actual"
-                  className="w-32 h-32 object-cover rounded border border-gray-300"
-                />
+                <div className="relative w-32 h-32">
+                  <Image
+                    src={currentImageUrl}
+                    alt="Imagen actual"
+                    fill
+                    sizes="128px"
+                    className="object-cover rounded border border-gray-300"
+                  />
+                </div>
               )}
             </div>
 
