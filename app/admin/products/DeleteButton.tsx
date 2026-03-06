@@ -17,17 +17,14 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
   const router = useRouter()
   const triggerRef = useRef<HTMLButtonElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
 
-
-  // Gestión de foco y teclado del modal
   useEffect(() => {
     if (!showConfirm) {
-      // Devolver foco al botón que abrió el modal
       triggerRef.current?.focus()
       return
     }
 
-    // Mover foco al botón Cancelar al abrir
     cancelRef.current?.focus()
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -66,8 +63,6 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
 
     try {
       const supabase = createClient()
-
-      // 1. Eliminar registro de BD (retorna image_url para limpieza posterior)
       const { data: deleted, error: deleteError } = await supabase
         .from('products')
         .delete()
@@ -77,7 +72,6 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
 
       if (deleteError) throw deleteError
 
-      // 2. Limpiar imagen de Storage (no bloqueante)
       const storagePath = deleted?.image_url
         ? extractStoragePath(deleted.image_url)
         : null
@@ -119,7 +113,7 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
           aria-labelledby={`delete-title-${productId}`}
           aria-describedby={`delete-desc-${productId}`}
         >
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div ref={modalRef} className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 id={`delete-title-${productId}`} className="text-lg font-bold mb-2">
               ¿Eliminar producto?
             </h3>
