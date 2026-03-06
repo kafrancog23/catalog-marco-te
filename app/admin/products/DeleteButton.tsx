@@ -13,6 +13,7 @@ interface DeleteButtonProps {
 export default function DeleteButton({ productId, productName }: DeleteButtonProps) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
   const router = useRouter()
   const cancelRef = useRef<HTMLButtonElement>(null)
 
@@ -23,7 +24,7 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
     cancelRef.current?.focus()
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setShowConfirm(false)
+      if (e.key === 'Escape') { setShowConfirm(false); setError('') }
     }
 
     document.addEventListener('keydown', handleKeyDown)
@@ -32,6 +33,7 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
 
   const handleDelete = async () => {
     setDeleting(true)
+    setError('')
 
     try {
       const supabase = createClient()
@@ -64,7 +66,7 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
       router.refresh()
       setShowConfirm(false)
     } catch (err: unknown) {
-      alert('Error al eliminar: ' + (err instanceof Error ? err.message : 'Error desconocido'))
+      setError(err instanceof Error ? err.message : 'Error desconocido al eliminar')
     } finally {
       setDeleting(false)
     }
@@ -73,7 +75,7 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
   return (
     <>
       <button
-        onClick={() => setShowConfirm(true)}
+        onClick={() => { setShowConfirm(true); setError('') }}
         className="px-3 py-1 text-sm text-red-600 hover:text-red-800 font-medium"
       >
         Eliminar
@@ -95,10 +97,15 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
               ¿Estás seguro de que quieres eliminar <span className="font-semibold">&quot;{productName}&quot;</span>?
               Esta acción no se puede deshacer.
             </p>
+            {error && (
+              <div role="alert" className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">
+                {error}
+              </div>
+            )}
             <div className="flex gap-3">
               <button
                 ref={cancelRef}
-                onClick={() => setShowConfirm(false)}
+                onClick={() => { setShowConfirm(false); setError('') }}
                 disabled={deleting}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
