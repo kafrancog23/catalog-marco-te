@@ -4,10 +4,25 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-client'
 import { useRouter, useParams } from 'next/navigation'
 
+const STORAGE_BUCKET = 'products-images'
+const STORAGE_PUBLIC_PREFIX = `/storage/v1/object/public/${STORAGE_BUCKET}/`
+
+function extractStoragePath(imageUrl: string): string | null {
+  try {
+    const { pathname } = new URL(imageUrl)
+    if (pathname.startsWith(STORAGE_PUBLIC_PREFIX)) {
+      return pathname.slice(STORAGE_PUBLIC_PREFIX.length)
+    }
+  } catch {
+    // URL inválida
+  }
+  return null
+}
+
 export default function EditProductPage() {
   const params = useParams()
   const id = params.id as string
-  
+
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
@@ -20,11 +35,10 @@ export default function EditProductPage() {
   const [error, setError] = useState('')
   const router = useRouter()
 
-  // Cargar el producto actual
   useEffect(() => {
     async function loadProduct() {
       const supabase = createClient()
-      
+
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -57,13 +71,11 @@ export default function EditProductPage() {
     try {
       const supabase = createClient()
       let imageUrl = currentImageUrl
-      let oldImagePath: string | null = null
+      let oldStoragePath: string | null = null
 
-      // Si hay nueva imagen, subirla
       if (newImage) {
         const fileExt = newImage.name.split('.').pop()
 
-        // Validar que tenga extensión
         if (!fileExt) {
           throw new Error('El archivo debe tener una extensión válida')
         }
@@ -77,27 +89,23 @@ export default function EditProductPage() {
         const filePath = `${productSlug}/${timestamp}.${fileExt}`
 
         const { error: uploadError } = await supabase.storage
-          .from('products-images')
+          .from(STORAGE_BUCKET)
           .upload(filePath, newImage)
 
         if (uploadError) throw uploadError
 
         const { data } = supabase.storage
-          .from('products-images')
+          .from(STORAGE_BUCKET)
           .getPublicUrl(filePath)
 
         imageUrl = data.publicUrl
 
-        // Preparar ruta de imagen anterior para eliminar después
+        // Guardar referencia a imagen anterior para limpiarla después
         if (currentImageUrl) {
-          const match = currentImageUrl.match(/\/public\/(.+)/)
-          if (match && match[1]) {
-            oldImagePath = match[1].replace('products-images/', '')
-          }
+          oldStoragePath = extractStoragePath(currentImageUrl)
         }
       }
 
-      // Actualizar el producto
       const { error: updateError } = await supabase
         .from('products')
         .update({
@@ -113,13 +121,13 @@ export default function EditProductPage() {
       if (updateError) throw updateError
 
       // Eliminar imagen anterior DESPUÉS de actualizar BD exitosamente
-      if (oldImagePath) {
-        const { error: deleteError } = await supabase.storage
-          .from('products-images')
-          .remove([oldImagePath])
+      if (oldStoragePath) {
+        const { error: removeError } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .remove([oldStoragePath])
 
-        if (deleteError) {
-          console.warn('No se pudo eliminar imagen anterior:', deleteError)
+        if (removeError) {
+          console.warn('No se pudo eliminar imagen anterior:', removeError)
         }
       }
 
@@ -146,7 +154,6 @@ export default function EditProductPage() {
           <h1 className="text-3xl font-bold mb-8">Editar Producto</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Nombre */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Nombre del producto
@@ -160,7 +167,6 @@ export default function EditProductPage() {
               />
             </div>
 
-            {/* Descripción */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Descripción
@@ -174,7 +180,6 @@ export default function EditProductPage() {
               />
             </div>
 
-            {/* Precio */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Precio (pesos colombianos)
@@ -190,7 +195,6 @@ export default function EditProductPage() {
               />
             </div>
 
-            {/* Categoría */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Categoría
@@ -211,7 +215,6 @@ export default function EditProductPage() {
               </select>
             </div>
 
-            {/* Estado */}
             <div>
               <label className="flex items-center gap-3">
                 <input
@@ -226,7 +229,6 @@ export default function EditProductPage() {
               </label>
             </div>
 
-            {/* Imagen actual */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Imagen actual
@@ -240,7 +242,6 @@ export default function EditProductPage() {
               )}
             </div>
 
-            {/* Nueva imagen (opcional) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Cambiar imagen (opcional)
@@ -256,14 +257,12 @@ export default function EditProductPage() {
               </p>
             </div>
 
-            {/* Error */}
             {error && (
               <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
 
-            {/* Botones */}
             <div className="flex gap-4">
               <button
                 type="button"

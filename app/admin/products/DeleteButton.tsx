@@ -1,8 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase-client'
 import { useRouter } from 'next/navigation'
+
+const STORAGE_BUCKET = 'products-images'
+const STORAGE_PUBLIC_PREFIX = `/storage/v1/object/public/${STORAGE_BUCKET}/`
+
+function extractStoragePath(imageUrl: string): string | null {
+  try {
+    const { pathname } = new URL(imageUrl)
+    if (pathname.startsWith(STORAGE_PUBLIC_PREFIX)) {
+      return pathname.slice(STORAGE_PUBLIC_PREFIX.length)
+    }
+  } catch {
+    // URL inválida, no se puede extraer ruta
+  }
+  return null
+}
 
 interface DeleteButtonProps {
   productId: string
@@ -13,45 +28,52 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
   const [showConfirm, setShowConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const router = useRouter()
+  const cancelRef = useRef<HTMLButtonElement>(null)
+
+  // Cerrar modal con ESC y manejar foco
+  useEffect(() => {
+    if (!showConfirm) return
+
+    cancelRef.current?.focus()
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowConfirm(false)
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [showConfirm])
 
   const handleDelete = async () => {
     setDeleting(true)
 
     try {
       const supabase = createClient()
-      const { data: product, error: fetchError } = await supabase
-        .from('products')
-        .select('image_url')
-        .eq('id', productId)
-        .single()
 
-      if (fetchError) throw fetchError
-
-      // Borrar imagen de Storage PRIMERO (si existe)
-      if (product?.image_url) {
-        const match = product.image_url.match(/\/public\/(.+)/)
-        if (match && match[1]) {
-          const fullPath = match[1]
-          const filePath = fullPath.replace('products-images/', '')
-
-          const { error: removeError } = await supabase.storage
-            .from('products-images')
-            .remove([filePath])
-
-          // Solo registrar warning si falla Storage, no bloquear
-          if (removeError) {
-            console.warn('Error al eliminar imagen:', removeError)
-          }
-        }
-      }
-
-      // Luego eliminar el registro de la BD
-      const { error: deleteError } = await supabase
+      // 1. Eliminar registro de BD (retorna image_url para limpieza posterior)
+      const { data: deleted, error: deleteError } = await supabase
         .from('products')
         .delete()
         .eq('id', productId)
+        .select('image_url')
+        .single()
 
       if (deleteError) throw deleteError
+
+      // 2. Limpiar imagen de Storage (no bloqueante)
+      const storagePath = deleted?.image_url
+        ? extractStoragePath(deleted.image_url)
+        : null
+
+      if (storagePath) {
+        const { error: removeError } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .remove([storagePath])
+
+        if (removeError) {
+          console.warn('No se pudo eliminar la imagen del storage:', removeError)
+        }
+      }
 
       router.refresh()
       setShowConfirm(false)
@@ -71,17 +93,25 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
         Eliminar
       </button>
 
-      {/* Modal de confirmación */}
       {showConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`delete-title-${productId}`}
+          aria-describedby={`delete-desc-${productId}`}
+        >
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold mb-2">¿Eliminar producto?</h3>
-            <p className="text-gray-600 mb-6">
-              ¿Estás seguro de que quieres eliminar <span className="font-semibold">&quot;{productName}&quot;</span>? 
+            <h3 id={`delete-title-${productId}`} className="text-lg font-bold mb-2">
+              ¿Eliminar producto?
+            </h3>
+            <p id={`delete-desc-${productId}`} className="text-gray-600 mb-6">
+              ¿Estás seguro de que quieres eliminar <span className="font-semibold">&quot;{productName}&quot;</span>?
               Esta acción no se puede deshacer.
             </p>
             <div className="flex gap-3">
               <button
+                ref={cancelRef}
                 onClick={() => setShowConfirm(false)}
                 disabled={deleting}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"

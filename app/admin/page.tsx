@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+// redirect ya no es necesario aquí — el layout.tsx lo maneja
 import { createServerClient } from '@supabase/ssr'
 import DeleteButton from './products/DeleteButton'
 import Image from 'next/image'
@@ -27,11 +27,8 @@ export default async function AdminPage() {
     }
   )
 
+  // El layout ya protege la autenticación — aquí solo obtenemos el user para mostrar info
   const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/admin/login')
-  }
 
   // Traer todos los productos
   const { data: products } = await supabase
