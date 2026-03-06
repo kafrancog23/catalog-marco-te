@@ -31,7 +31,29 @@ export default function DeleteButton({ productId, productName }: DeleteButtonPro
     cancelRef.current?.focus()
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setShowConfirm(false); setError('') }
+      if (e.key === 'Escape') { setShowConfirm(false); setError(''); return }
+
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusableSelectors = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        const focusableElements = Array.from(
+          modalRef.current.querySelectorAll<HTMLElement>(focusableSelectors)
+        )
+        if (focusableElements.length === 0) return
+        const firstElement = focusableElements[0]
+        const lastElement = focusableElements[focusableElements.length - 1]
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            e.preventDefault()
+            lastElement?.focus()
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            e.preventDefault()
+            firstElement?.focus()
+          }
+        }
+      }
     }
 
     document.addEventListener('keydown', handleKeyDown)
