@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react'
 
 // Tipo de un producto en el carrito
 export interface CartItem {
@@ -27,14 +27,30 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 
 // Provider que envuelve la aplicación
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(() => {
-    const savedCart = typeof window !== 'undefined' ? window.localStorage.getItem('cart') : null
-    return savedCart ? JSON.parse(savedCart) : []
-  })
+  const [items, setItems] = useState<CartItem[]>([])
+  const isInitializedRef = useRef(false)
+
+  // Cargar carrito desde localStorage una vez en el cliente
+  useEffect(() => {
+    const savedCart = window.localStorage.getItem('cart')
+    if (savedCart) {
+      try {
+        const parsed = JSON.parse(savedCart)
+        if (Array.isArray(parsed)) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setItems(parsed as CartItem[])
+        }
+      } catch (error) {
+        console.error('Error al leer el carrito desde localStorage:', error)
+      }
+    }
+    isInitializedRef.current = true
+  }, [])
 
   // Guardar carrito en localStorage cada vez que cambie
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(items))
+    if (!isInitializedRef.current) return
+    window.localStorage.setItem('cart', JSON.stringify(items))
   }, [items])
 
   // Agregar producto al carrito

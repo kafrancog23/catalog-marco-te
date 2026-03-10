@@ -25,7 +25,11 @@ export default function CartModal({ onClose }: CartModalProps) {
   const handleWhatsAppOrder = () => {
     if (items.length === 0) return
 
-    const phoneNumber = '573001234567' // ← CAMBIA ESTE NÚMERO por el tuyo
+    const phoneNumber = process.env.NEXT_PUBLIC_WHATSAPP_PHONE
+    if (!phoneNumber) {
+      console.error('NEXT_PUBLIC_WHATSAPP_PHONE is not configured.')
+      return
+    }
 
     let message = 'Hola, quiero hacer un pedido:\n\n'
     
@@ -47,6 +51,8 @@ export default function CartModal({ onClose }: CartModalProps) {
     >
       <div
         ref={modalRef}
+        role="dialog"
+        aria-modal="true"
         className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >

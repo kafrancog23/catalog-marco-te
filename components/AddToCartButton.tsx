@@ -1,7 +1,7 @@
 'use client'
 
 import { useCart } from '@/lib/cart-context'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 interface AddToCartButtonProps {
   product: {
@@ -16,12 +16,20 @@ export default function AddToCartButton({ product }: AddToCartButtonProps) {
   const { addItem } = useCart()
   const [added, setAdded] = useState(false)
 
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
+
   const handleClick = () => {
     addItem(product)
     setAdded(true)
 
-    // Resetear el estado después de 2 segundos
-    setTimeout(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    timeoutRef.current = setTimeout(() => {
       setAdded(false)
     }, 2000)
   }
