@@ -37,8 +37,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       try {
         const parsed = JSON.parse(savedCart)
         if (Array.isArray(parsed)) {
+          const validItems = parsed.filter(
+            (item): item is CartItem =>
+              typeof item === 'object' &&
+              item !== null &&
+              typeof item.id === 'string' &&
+              typeof item.name === 'string' &&
+              typeof item.price === 'number' &&
+              typeof item.image_url === 'string' &&
+              typeof item.quantity === 'number'
+          )
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setItems(parsed as CartItem[])
+          setItems(validItems)
         }
       } catch (error) {
         console.error('Error al leer el carrito desde localStorage:', error)

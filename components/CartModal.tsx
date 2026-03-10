@@ -12,13 +12,20 @@ export default function CartModal({ onClose }: CartModalProps) {
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart()
   const modalRef = useRef<HTMLDivElement>(null)
 
-  // Cerrar con Escape
+  // Cerrar con Escape y bloquear scroll de fondo
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = previousOverflow
+    }
   }, [onClose])
 
   // Generar mensaje de WhatsApp
@@ -28,6 +35,7 @@ export default function CartModal({ onClose }: CartModalProps) {
     const phoneNumber = process.env.NEXT_PUBLIC_WHATSAPP_PHONE
     if (!phoneNumber) {
       console.error('NEXT_PUBLIC_WHATSAPP_PHONE is not configured.')
+      window.alert('No se pudo iniciar el pedido por WhatsApp porque el número de contacto no está configurado. Por favor intenta más tarde o contáctanos por otro medio.')
       return
     }
 
@@ -53,13 +61,14 @@ export default function CartModal({ onClose }: CartModalProps) {
         ref={modalRef}
         role="dialog"
         aria-modal="true"
+        aria-labelledby="cart-modal-title"
         className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-gray-800">Tu Carrito</h2>
+            <h2 id="cart-modal-title" className="text-2xl font-bold text-gray-800">Tu Carrito</h2>
             <button
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700 text-2xl"
